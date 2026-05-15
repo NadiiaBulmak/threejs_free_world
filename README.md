@@ -2,7 +2,9 @@
 
 Мінімальний TypeScript-шаблон для 3D-ігор на Three.js з controller-based архітектурою: базовий шар движка, завантаження ресурсів, template callbacks і організований game loop.
 
-Детальна специфікація: [`docs/ENGINE_ARCHITECTURE.md`](docs/ENGINE_ARCHITECTURE.md)
+Документація:
+- [`docs/ENGINE_ARCHITECTURE.md`](docs/ENGINE_ARCHITECTURE.md) — архітектура
+- [`plan/DEVELOPMENT_GUIDE.md`](plan/DEVELOPMENT_GUIDE.md) — гайд по контроллерах з прикладами
 
 ## Можливості
 
