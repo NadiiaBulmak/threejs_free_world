@@ -1,234 +1,207 @@
-# Three.js Game Template - TypeScript
+# Three.js Engine Template
 
-Lightweight, modular, and extensible template for building 3D web games using Three.js and TypeScript. Built with controller-based architecture for clean, scalable code.
+Мінімальний TypeScript-шаблон для 3D-ігор на Three.js з controller-based архітектурою: базовий шар движка, завантаження ресурсів, template callbacks і організований game loop.
 
-## 🎯 Features
+Детальна специфікація: [`docs/ENGINE_ARCHITECTURE.md`](docs/ENGINE_ARCHITECTURE.md)
 
-- **Controller-based Architecture** - Separation of concerns with reusable controllers
-- **Type-safe** - Full TypeScript support with proper interfaces
-- **Modular** - Easy to extend and customize
-- **Lightweight** - Minimal dependencies, optimized for small file sizes
-- **Event System** - Global event bus for component communication
-- **Resource Management** - Centralized asset loading and cleanup
-- **Input Handling** - Keyboard, mouse, and touch input support
-- **Debug Tools** - Built-in visualization helpers and logging
+## Можливості
 
-## 📦 Installation
+- **InitC** — ініціалізація всіх базових контроллерів і lifecycle
+- **Template callbacks** — логіка гри без зміни `InitC` (`beforeResourceLoaded`, `afterResourceLoaded`, resize, firstClick)
+- **Ресурси** — групи з одним лоадером (`LoaderC` → texture / image / audio / mesh / vfx)
+- **Камера** — окремі налаштування portrait / landscape
+- **Input** — клавіатура, миша, click-drag на canvas, `onFirstClick`
+- **OrbitControls** — обертання / зум / панорама камери
+- **Physics** — Cannon-es (опційно через `engine.config.ts`)
+- **MoveC / RotateC** — база для персонажа
+- **updateDelegate** — пріоритетне оновлення систем у game loop
+
+## Встановлення
 
 ```bash
-# Clone or setup the project
 npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
+npm run dev      # http://localhost:3000
+npm run build    # production build → dist/
+npm run type-check
 ```
 
-## 🏗️ Architecture
-
-### Core Controllers
-
-All controllers inherit from base classes:
-
-- **BaseC** - Base controller with init/update/destroy lifecycle
-- **UpdateBaseC** - For controllers that update each frame
-- **DisposableC** - Auto resource cleanup
-
-### Main Controllers
-
-1. **InitC** - Main initialization & lifecycle manager
-2. **SceneC** - Scene management with object registry
-3. **CameraC** - Camera with follow/shake effects
-4. **RendererC** - WebGL renderer setup
-5. **GameLoopC** - Main update loop
-6. **TimeC** - FPS tracking & delta time
-7. **InputC** - Keyboard/Mouse/Touch input
-8. **ResizeC** - Window resize handling
-9. **EventBusC** - Global event system
-10. **LightC** - Light management
-11. **ResourceC** - Asset management
-12. **PhysicsC** - Physics abstraction (ready for integration)
-13. **DebugC** - Debug visualization helpers
-
-## 🚀 Quick Start
+## Швидкий старт
 
 ```typescript
-import { InitC } from "./core/init/InitC";
+import { InitC } from "@core/init/InitC";
 
 async function main() {
-  const game = new InitC();
-  await game.init();
-
-  // Add your game logic here
-
-  game.start();
+  const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
+  const app = new InitC(canvas);
+  await app.init(); // lifecycle + завантаження ресурсів
+  app.start();
 }
 
 main();
 ```
 
-## 📂 Project Structure
+## Життєвий цикл
 
-```
+1. `InitC` створює інфраструктуру та базові контроллери
+2. `beforeResourceLoaded` — підготовка до завантаження
+3. `LoaderC.loadAll(allResourceGroups)` — ресурси в `ResourceC`
+4. `afterResourceLoaded` — сцена, світло, геймплей
+5. Реєстрація `updateDelegate`, resize / firstClick callbacks
+6. `start()` — RAF loop (update → render)
+
+## Структура проєкту
+
+```text
 src/
+├── main.ts
+├── types/              # ICore, ResourceGroup, ResourceItem
+├── config/
+│   ├── engine.config.ts
+│   ├── camera.config.ts
+│   └── resources/      # music, meshes, images, textures, vfx
 ├── core/
-│   ├── base/          # Base classes
-│   ├── scene/         # Scene, Camera, Renderer
-│   ├── loop/          # Game loop & time
-│   ├── input/         # Input handling
-│   ├── events/        # Event system
-│   ├── resources/     # Asset management
-│   ├── physics/       # Physics abstraction
-│   ├── resize/        # Window resize
-│   ├── debug/         # Debug tools
-│   └── init/          # Main initialization
-├── config/            # Configuration files
-├── types/             # TypeScript interfaces
-├── game/              # Game logic (entities, levels, etc.)
-└── main.ts            # Entry point
+│   ├── base/           # BaseC, UpdateBaseC, DisposableC
+│   ├── init/           # InitC
+│   ├── loop/           # GameLoopC, TimeC
+│   ├── scene/          # SceneC, CameraC, OrbitC, RendererC
+│   ├── input/          # InputC (click-drag)
+│   ├── character/      # MoveC, RotateC
+│   ├── physics/        # PhysicsC
+│   ├── resources/      # ResourceC, LoaderC, loaders/
+│   ├── resize/         # ResizeC
+│   ├── events/         # EventBusC
+│   ├── debug/          # DebugC (опційно)
+│   └── scene/LightC.ts # опційно, не в InitC
+└── template/
+    ├── GameTemplate.ts
+    └── callbacks/      # lifecycle, resize, firstClick, update
+docs/
+└── ENGINE_ARCHITECTURE.md
 ```
 
-## 🎮 Usage Examples
+## Базові контроллери (InitC)
 
-### Adding Objects to Scene
+| Контроллер | Призначення |
+|------------|-------------|
+| `SceneC` | Сцена та іменовані об'єкти |
+| `CameraC` | Камера, portrait / landscape |
+| `OrbitC` | OrbitControls (увімкнено в `engine.config`) |
+| `PhysicsC` | Cannon-es, гравітація, rigid body |
+| `InputC` | Клавіатура, миша, click-drag, firstClick |
+| `MoveC` / `RotateC` | Рух і обертання цілі (майбутній персонаж) |
+| `LoaderC` / `ResourceC` | Завантаження та сховище ресурсів |
+
+## Ресурси
+
+Кожен файл у `config/resources/` — група: спочатку `items`, один `loader` на всю групу.
 
 ```typescript
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-const mesh = new THREE.Mesh(geometry, material);
-
-game.scene.add(mesh, "my-cube"); // Add with name
-game.scene.findByName("my-cube"); // Retrieve
+// src/config/resources/images.resources.ts
+export const imageResources: ResourceGroup = {
+  items: [
+    { id: "ui-logo", url: "/images/logo.png" },
+  ],
+  loader: "image",
+};
 ```
 
-### Lighting
+Після додавання ресурсів вони підвантажуються автоматично через `allResourceGroups` у `InitC.init()`.
+
+Отримання зі сховища:
 
 ```typescript
-// Ambient light
-game.light.addAmbientLight(0xffffff, 0.6);
-
-// Directional light
-game.light.addDirectionalLight(0xffffff, 0.8, new THREE.Vector3(5, 10, 5));
-
-// Point light
-game.light.addPointLight(0xff0000, 1, 100, new THREE.Vector3(0, 5, 0));
+const logo = app.resources.get("ui-logo");
 ```
 
-### Input Handling
+## Template callbacks
+
+Редагуй файли в `src/template/callbacks/`:
+
+| Файл | Коли викликається |
+|------|-------------------|
+| `lifecycle.callbacks.ts` | До / після завантаження ресурсів |
+| `resize.callbacks.ts` | Зміна розміру вікна |
+| `firstClick.callbacks.ts` | Перший клік (unlock audio тощо) |
+| `update.callbacks.ts` | Реєстрація `updateDelegate` |
+
+Приклад — додати свій tick:
 
 ```typescript
-// Keyboard
-if (game.input.isKeyPressed("KeyW")) {
-  // Move forward
-}
-
-// Mouse
-if (game.input.isMouseDown(0)) {
-  // Left click
-}
-
-const mousePos = game.input.getMousePosition();
+// update.callbacks.ts
+core.gameLoop.addUpdateDelegate((delta) => {
+  myGameplayUpdate(delta);
+}, 50);
 ```
 
-### Events
+## Приклади
+
+### Об'єкт на сцені
 
 ```typescript
-// Emit event
-game.events.emit("PLAYER_DIED", { score: 100 });
+const mesh = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshStandardMaterial({ color: 0x4a9eff }),
+);
+app.scene.add(mesh, "cube");
+```
 
-// Listen to event
-game.events.on("PLAYER_DIED", (data) => {
-  console.log("Player died with score:", data.score);
+### Input
+
+```typescript
+if (app.input.isKeyPressed("KeyW")) { /* ... */ }
+
+app.input.onDrag((data) => {
+  console.log(data.delta.x, data.delta.y);
+});
+
+app.input.onFirstClick(() => {
+  console.log("First click");
 });
 ```
 
-### Debug Tools
+### Події
 
 ```typescript
-// Show grid and axes
-game.debug.showGridHelper(20, 20);
-game.debug.showAxesHelper(5);
-
-// Show bounding box
-game.debug.showBoundingBoxHelper(mesh);
-
-// Log info
-game.debug.logCameraInfo();
-game.debug.logSceneInfo();
-game.debug.logFPS();
+app.events.on("firstClick", () => { /* ... */ });
+app.events.emit("CUSTOM_EVENT", { value: 1 });
 ```
 
-## 🔧 Configuration
+## Конфігурація
 
-Path aliases for clean imports:
+**`engine.config.ts`** — renderer, physics, orbit, demo-сцена.
+
+**`camera.config.ts`** — `portrait` / `landscape` (fov, position, lookAt).
+
+## Path aliases
+
+| Alias | Шлях |
+|-------|------|
+| `@core/*` | `src/core/*` |
+| `@config/*` | `src/config/*` |
+| `@engine-types/*` | `src/types/*` |
+| `@template/*` | `src/template/*` |
 
 ```typescript
 import { InitC } from "@core/init/InitC";
-import type { ICore } from "@types/core";
+import type { ICore } from "@engine-types/core";
+import { imageResources } from "@config/resources/images.resources";
 ```
 
-Available aliases:
+## Розширення
 
-- `@core/*` - Core controllers
-- `@config/*` - Configuration files
-- `@game/*` - Game logic
-- `@types/*` - TypeScript types
+1. Додай ресурси у відповідний `config/resources/*.ts`
+2. Логіку після завантаження — у `afterResourceLoaded`
+3. Resize / firstClick — у відповідних callback-файлах
+4. Новий tick — `addUpdateDelegate` у `update.callbacks.ts`
+5. **Не роздувай `InitC`** — кастомна логіка лише в `template/` або майбутньому `game/`
 
-## 📋 Development Roadmap
+Опційні модулі (`LightC`, `DebugC`) підключай у `afterResourceLoaded`, не в базовому InitC.
 
-### Etap 1 ✅ (Complete)
+## Залежності
 
-- Base controllers & architecture
-- Scene, Camera, Renderer
-- Game loop & time
-- Input system
-- Events & callbacks
-- Lights & Debug
+- [three](https://threejs.org/) ^0.128
+- [cannon-es](https://github.com/pmndrs/cannon-es) ^0.20
 
-### Etap 2 (Planned)
+## Ліцензія
 
-- Resource loaders (Texture, Model, Audio)
-- Animation controller
-- Particle effects
-
-### Etap 3 (Planned)
-
-- Movement & Rotation controllers
-- Physics integration (Cannon.js/Rapier)
-- Collision detection
-
-### Etap 4 (Planned)
-
-- Entity system
-- Player controller
-- Enemy spawner
-
-### Etap 5+ (Advanced)
-
-- ECS architecture
-- Multiplayer support
-- Save/Load system
-- UI framework
-- Postprocessing effects
-
-## 📝 License
-
-MIT - Feel free to use this template for your projects!
-
-## 🤝 Contributing
-
-This is a template for your personal use. Feel free to customize it for your needs!
-
-## 💡 Tips
-
-- Keep controllers focused on a single responsibility
-- Use the event system for communication between systems
-- Leverage TypeScript for type safety
-- The debug tools are great for development - disable in production
-- Organize game logic in the `src/game/` directory
-
----
-
-**Happy coding! 🎮**
+MIT
