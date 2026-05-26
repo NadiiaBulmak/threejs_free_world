@@ -1,6 +1,6 @@
 import type { ICore } from "@engine-types/core";
 import { EditorC } from "./EditorC";
-import { meshResources } from "@config/resources/meshes.resources";
+import { allResourceGroups } from "@config/resources";
 import * as THREE from "three";
 
 const PANEL_ID = "__game_editor_panel";
@@ -56,12 +56,26 @@ export class EditorUI {
     const prefabSelect = document.createElement("select");
     prefabSelect.style.width = "100%";
     prefabSelect.style.marginBottom = "6px";
-    for (const item of meshResources.items) {
-      const opt = document.createElement("option");
-      opt.value = item.id;
-      opt.textContent = item.id;
-      prefabSelect.appendChild(opt);
+
+    const meshItems = allResourceGroups
+      .filter((group) => group.loader === "mesh")
+      .flatMap((group) => group.items);
+
+    if (meshItems.length === 0) {
+      const emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "(no mesh resources loaded)";
+      emptyOpt.disabled = true;
+      prefabSelect.appendChild(emptyOpt);
+    } else {
+      for (const item of meshItems) {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.id;
+        prefabSelect.appendChild(opt);
+      }
     }
+
     root.appendChild(prefabSelect);
 
     const addBtn = document.createElement("button");
