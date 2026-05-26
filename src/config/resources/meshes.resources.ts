@@ -1,8 +1,11 @@
 import type { ResourceGroup } from "@engine-types/resources";
 
+const sceneUrl = new URL("../../resources/meshes/Character_updated.glb", import.meta.url)
+  .href;
+
 export const meshResources: ResourceGroup = {
-  items: [
-    // { id: "level", url: "/models/level.glb" },
-  ],
+  items: [{ id: "scene", url: sceneUrl }],
   loader: "mesh",
 };
+
+export default meshResources;

@@ -6,6 +6,15 @@ export const engineConfig = {
   /** Demo-сцена в afterResourceLoaded (template/callbacks/lifecycle) */
   sampleScene: {
     enabled: true,
+    /** 'builtin' = internal demo scene, 'file' = load scene from resources as-is */
+    mode: "file" as const,
+  },
+
+  editor: {
+    enabled: true,
+    devOnly: true,
+    panelOpacity: 0.85,
+    gizmoEnabled: true,
   },
 
   orbit: {

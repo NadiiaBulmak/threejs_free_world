@@ -83,6 +83,7 @@ export class InitC extends BaseC implements ICore {
     }
 
     await this.template.runAfterLoad();
+    this.scene.init();
     this.template.bindCallbacks();
 
     this.gameLoop.registerUpdateController(this.time);
