@@ -188,12 +188,13 @@ export class EditorC extends BaseC {
   addObjectFromPrefab(
     prefabId: string,
     position = { x: 0, y: 0, z: 0 },
-  ): THREE.Object3D {
+  ): THREE.Object3D | null {
     const source = this.core.resources.get(prefabId) as
       | THREE.Object3D
       | undefined;
     let instance: THREE.Object3D;
     if (source) {
+      if (this.isArmatureObject(source, prefabId)) return null;
       instance = this.cloneObject(source);
     } else {
       // try to find child inside loaded scene resource
@@ -202,6 +203,7 @@ export class EditorC extends BaseC {
         | undefined;
       const child = sceneRes?.getObjectByName(prefabId);
       if (child) {
+        if (this.isArmatureObject(child, prefabId)) return null;
         instance = this.cloneObject(child);
       } else {
         instance = new THREE.Mesh(
@@ -210,6 +212,7 @@ export class EditorC extends BaseC {
         );
       }
     }
+    if (this.isArmatureObject(instance, prefabId)) return null;
     this.normalizeImportedObject(instance, prefabId);
     instance.position.set(position.x, position.y, position.z);
     instance.name = `${prefabId}_${Date.now().toString(36).slice(-6)}`;

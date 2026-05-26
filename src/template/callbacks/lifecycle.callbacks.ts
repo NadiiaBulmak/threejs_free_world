@@ -6,11 +6,6 @@ import { LevelC } from "../../game/level/LevelC";
 import { EditorC } from "../../game/editor/EditorC";
 // import EditorUI from "src/game/editor/EditorUI";
 import { EditorUI } from "../../game/editor/EditorUI";
-import { levelsConfig } from "@config/levels.config";
-import { LevelC } from "../../game/level/LevelC";
-import { EditorC } from "../../game/editor/EditorC";
-// import EditorUI from "src/game/editor/EditorUI";
-import { EditorUI } from "../../game/editor/EditorUI";
 
 export async function beforeResourceLoaded(_core: ICore): Promise<void> {
   // Підготовка перед завантаженням ресурсів

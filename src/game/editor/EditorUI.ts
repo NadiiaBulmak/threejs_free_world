@@ -228,6 +228,9 @@ export class EditorUI {
         if (sceneRes) {
           const children = sceneRes.children ?? [];
           for (const child of children) {
+            if ((child.name || "").toLowerCase().includes("armature")) {
+              continue;
+            }
             const entry = document.createElement("div");
             entry.textContent = child.name || child.type || "child";
             entry.style.padding = "4px";
