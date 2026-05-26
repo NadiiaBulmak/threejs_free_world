@@ -8,6 +8,13 @@ export const engineConfig = {
     enabled: true,
   },
 
+  editor: {
+    enabled: true,
+    devOnly: true,
+    panelOpacity: 0.85,
+    gizmoEnabled: true,
+  },
+
   orbit: {
     enabled: true,
     target: { x: 0, y: 0.5, z: 0 },

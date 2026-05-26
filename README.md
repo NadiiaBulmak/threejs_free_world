@@ -5,6 +5,7 @@
 Документація:
 - [`docs/ENGINE_ARCHITECTURE.md`](docs/ENGINE_ARCHITECTURE.md) — архітектура
 - [`plan/DEVELOPMENT_GUIDE.md`](plan/DEVELOPMENT_GUIDE.md) — гайд по контроллерах з прикладами
+- [`plan/IMPLEMENTATION_PLAN.md`](plan/IMPLEMENTATION_PLAN.md) — покроковий план нових систем
 
 ## Можливості
 
