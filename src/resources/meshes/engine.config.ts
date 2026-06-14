@@ -11,8 +11,8 @@ export const engineConfig = {
   },
 
   editor: {
-    enabled: true,
-    devOnly: true,
+    enabled: false,
+    devOnly: false,
     panelOpacity: 0.85,
     gizmoEnabled: true,
   },

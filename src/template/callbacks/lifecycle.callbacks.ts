@@ -47,8 +47,10 @@ export async function afterResourceLoaded(core: ICore): Promise<void> {
     console.warn("Level loading failed:", e);
   }
 
-  // Ensure the scene has default lighting after sample scene setup.
-  _ensureDefaultLighting(core);
+  // Ensure the scene has default base lighting after sample scene setup.
+  _setupBaseLighting(core);
+  _fixSceneMeshMaterials(core);
+  // _setupEnvironmentMap(core);
 
   // Editor (dev) — instantiate if enabled or ?editor=1
   try {
@@ -69,24 +71,75 @@ export async function afterResourceLoaded(core: ICore): Promise<void> {
   }
 }
 
-function _ensureDefaultLighting(core: ICore): void {
+function _setupBaseLighting(core: ICore): void {
   const scene = core.scene.getScene();
-  let hasLight = false;
-  scene.traverse((child) => {
-    if (child.type.endsWith("Light")) {
-      hasLight = true;
-    }
-  });
-
-  if (hasLight) return;
-
-  const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
   const directional = new THREE.DirectionalLight(0xffffff, 0.8);
   directional.position.set(5, 10, 5);
+  directional.target.position.set(0, 0, 0);
 
-  core.scene.add(ambient, "default-ambient-light");
-  core.scene.add(directional, "default-directional-light");
+  scene.add(directional.target);
+  core.scene.add(ambient, "base-ambient-light");
+  core.scene.add(directional, "base-directional-light");
 }
+
+function _fixSceneMeshMaterials(core: ICore): void {
+  core.scene.getScene().traverse((obj) => {
+    if ((obj as any).isMesh) {
+      const mesh = obj as THREE.Mesh;
+
+      const applyToMaterial = (material: THREE.Material | THREE.Material[]) => {
+        if (Array.isArray(material)) {
+          material.forEach(applyToMaterial);
+          return;
+        }
+
+        if (material && "side" in material) {
+          material.side = THREE.DoubleSide;
+          if (!material.transparent) {
+            material.transparent = false;
+            material.opacity = 1;
+          }
+        }
+      };
+
+      if (mesh.material) {
+        applyToMaterial(mesh.material);
+      }
+    }
+  });
+}
+
+// function _setupEnvironmentMap(core: ICore): void {
+//   const loader = new THREE.TextureLoader();
+//   const textureUrl = new URL(
+//     "../../resources/maps/free_hdri_sky_791_.jpg",
+//     import.meta.url,
+//   ).href;
+//   loader.load(
+//     textureUrl,
+//     (texture) => {
+//       texture.encoding = THREE.sRGBEncoding;
+//       texture.mapping = THREE.EquirectangularReflectionMapping;
+
+//       const scene = core.scene.getScene();
+//       scene.background = texture;
+//       scene.environment = texture;
+
+//       const size = 5000;
+//       const envBox = new THREE.Mesh(
+//         new THREE.BoxGeometry(size, size, size),
+//         new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide }),
+//       );
+//       envBox.name = "environment-box";
+//       scene.add(envBox);
+//     },
+//     undefined,
+//     (error) => {
+//       console.warn("Failed to load environment map:", error);
+//     },
+//   );
+// }
 
 function _setupSampleScene(core: ICore): void {
   const ground = new THREE.Mesh(

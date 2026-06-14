@@ -9,14 +9,14 @@ export interface CameraOrientationConfig {
 export const cameraConfig = {
   portrait: {
     fov: 70,
-    near: 0.1,
+    near: 0.01,
     far: 1000,
     position: { x: 0, y: 6, z: 12 },
     lookAt: { x: 0, y: 5, z: 5 },
   },
   landscape: {
     fov: 75,
-    near: 0.1,
+    near: 0.01,
     far: 1000,
     position: { x: 0, y: 5, z: 10 },
     lookAt: { x: 0, y: 5, z: 5 },
