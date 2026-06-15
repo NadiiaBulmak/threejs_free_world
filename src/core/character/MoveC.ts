@@ -35,4 +35,14 @@ export class MoveC extends UpdateBaseC {
     super.update(delta);
     this.move(delta);
   }
+
+  setPosition(x: number, y: number, z: number): void {
+  if (!this.target) return;
+  this.target.position.set(x, y, z);
+}
+
+raiseY(amount: number): void {
+  if (!this.target) return;
+  this.target.position.y += amount;
+}
 }

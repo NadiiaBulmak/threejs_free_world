@@ -13,22 +13,13 @@ export async function beforeResourceLoaded(_core: ICore): Promise<void> {
 
 export async function afterResourceLoaded(core: ICore): Promise<void> {
   if (engineConfig.sampleScene.enabled) {
-    // Support loading the sample scene from a resource file (as-is)
+    // If sampleScene.mode === 'file' we load the resource but DO NOT add
+    // the whole scene into the runtime scene. The Level system will
+    // selectively instantiate children from the loaded scene resource
+    // according to level config (userData.childName).
     if ((engineConfig.sampleScene as any).mode === "file") {
-      try {
-        // load scene resource named 'scene' and add it unchanged
-        if (
-          core.scene &&
-          typeof (core.scene as any).addSceneFromResource === "function"
-        ) {
-          (core.scene as any).addSceneFromResource("scene", "scene");
-        } else {
-          _setupSampleScene(core);
-        }
-      } catch (e) {
-        console.warn("Failed to load scene from resource, falling back:", e);
-        _setupSampleScene(core);
-      }
+      // no-op: resource should already be loaded by the resource system;
+      // avoid adding the entire scene to prevent duplication with LevelC
     } else {
       _setupSampleScene(core);
     }
@@ -73,20 +64,32 @@ export async function afterResourceLoaded(core: ICore): Promise<void> {
 
 function _setupBaseLighting(core: ICore): void {
   const scene = core.scene.getScene();
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  const directional = new THREE.DirectionalLight(0xffffff, 0.9);
   directional.position.set(5, 10, 5);
   directional.target.position.set(0, 0, 0);
+  directional.castShadow = true;
+  directional.shadow.mapSize.width = 2048;
+  directional.shadow.mapSize.height = 2048;
+  directional.shadow.camera.near = 0.5;
+  directional.shadow.camera.far = 50;
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+  hemi.position.set(0, 20, 0);
 
   scene.add(directional.target);
   core.scene.add(ambient, "base-ambient-light");
   core.scene.add(directional, "base-directional-light");
+  core.scene.add(hemi, "base-hemisphere-light");
 }
 
 function _fixSceneMeshMaterials(core: ICore): void {
   core.scene.getScene().traverse((obj) => {
     if ((obj as any).isMesh) {
       const mesh = obj as THREE.Mesh;
+      const name = (mesh.name || "").toLowerCase();
+      const prefabId = ((mesh.userData as any)?.prefabId || "").toLowerCase();
+      const isGrass = name.includes("grass") || prefabId.includes("grass");
 
       const applyToMaterial = (material: THREE.Material | THREE.Material[]) => {
         if (Array.isArray(material)) {
@@ -99,6 +102,23 @@ function _fixSceneMeshMaterials(core: ICore): void {
           if (!material.transparent) {
             material.transparent = false;
             material.opacity = 1;
+          }
+        }
+
+        if (isGrass && material && "color" in material) {
+          const mat = material as any;
+          if (mat.color) {
+            // brighten grass material while preserving hue
+            const color = mat.color.clone();
+            color.offsetHSL(0, -0.08, 0.12);
+            mat.color.copy(color);
+          }
+          if (mat.emissive) {
+            mat.emissive = mat.emissive || new THREE.Color(0x002200);
+            mat.emissiveIntensity = Math.max(mat.emissiveIntensity || 0, 0.18);
+          }
+          if ("roughness" in mat) {
+            mat.roughness = Math.min(0.8, Math.max(0.25, mat.roughness ?? 0.6));
           }
         }
       };
@@ -156,10 +176,18 @@ function _setupSampleScene(core: ICore): void {
   cube.position.set(0, 0.5, 0);
   core.scene.add(cube, "sample-cube");
 
-  const light = new THREE.AmbientLight(0xffffff, 0.6);
+  const light = new THREE.AmbientLight(0xffffff, 0.9);
   core.scene.getScene().add(light);
 
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  const dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(5, 10, 5);
+  dir.castShadow = true;
+  dir.shadow.mapSize.width = 2048;
+  dir.shadow.mapSize.height = 2048;
+  dir.shadow.camera.near = 0.5;
+  dir.shadow.camera.far = 50;
   core.scene.getScene().add(dir);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.35);
+  hemi.position.set(0, 20, 0);
+  core.scene.getScene().add(hemi);
 }

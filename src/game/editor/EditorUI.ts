@@ -222,6 +222,30 @@ export class EditorUI {
     moveWrap.appendChild(moveZNeg);
     root.appendChild(moveWrap);
 
+    // Delete selected
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete selected";
+    deleteBtn.style.width = "100%";
+    deleteBtn.style.marginTop = "8px";
+    deleteBtn.onclick = () => {
+      try {
+        const sel = this.editor.getSelection();
+        if (!sel) return;
+        const name = sel.name;
+        if (name) {
+          this.editor.deleteObjectByName(name);
+        } else {
+          // remove direct object reference
+          this.core.scene.getScene().remove(sel);
+        }
+        this.editor.selectObject(null);
+        updateSelectedLabel(null);
+      } catch (e) {
+        console.warn("Failed to delete selected object", e);
+      }
+    };
+    root.appendChild(deleteBtn);
+
     // Scene children list (draggable)
     const sceneLabel = document.createElement("div");
     sceneLabel.textContent = "Scene objects:";

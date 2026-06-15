@@ -20,6 +20,10 @@ export class SceneC extends DisposableC {
   init(): void {
     // Initialization kept minimal: scene population is handled by
     // lifecycle callbacks (sample scene, levels, or resource-based loading).
+    console.log("[SceneC] Scene initialized");
+    console.log("[SceneC] Initial scene contents:", this.scene.children  
+    )
+  
   }
 
   /**
