@@ -130,12 +130,13 @@ export class EditorC extends BaseC {
     const objects: LevelObjectPlacement[] = [];
     let idx = 0;
     for (const child of scene.children) {
-      // skip lights and cameras
+      // skip lights, cameras and editor helper objects
       if (
         child.type === "AmbientLight" ||
         child.type === "DirectionalLight" ||
         child.type === "HemisphereLight" ||
-        child.type === "PerspectiveCamera"
+        child.type === "PerspectiveCamera" ||
+        this.isTransformControlObject(child)
       )
         continue;
 

@@ -10,48 +10,8 @@ export const levelsConfig: LevelsConfig = {
       worldId: "world_main",
       spawn: { x: 0, y: 1, z: 0 },
       objects: [
-    // {
-    //   "index": 0,
-    //   "prefabId": "prefab_unknown",
-    //   "position": {
-    //     "x": 0,
-    //     "y": 0,
-    //     "z": 0
-    //   },
-    //   "rotation": {
-    //     "x": 0,
-    //     "y": 0,
-    //     "z": 0
-    //   },
-    //   "scale": {
-    //     "x": 1,
-    //     "y": 1,
-    //     "z": 1
-    //   },
-    //   "userData": {}
-    // },
-    // {
-    //   "index": 1,
-    //   "prefabId": "prefab_unknown",
-    //   "position": {
-    //     "x": 0,
-    //     "y": 0,
-    //     "z": 0
-    //   },
-    //   "rotation": {
-    //     "x": 0,
-    //     "y": 0,
-    //     "z": 0
-    //   },
-    //   "scale": {
-    //     "x": 1,
-    //     "y": 1,
-    //     "z": 1
-    //   },
-    //   "userData": {}
-    // },
     {
-      "index": 2,
+      "index": 0,
       "prefabId": "grass-blockglb",
       "position": {
         "x": -0.08557549539281598,
@@ -76,11 +36,11 @@ export const levelsConfig: LevelsConfig = {
     },
     {
       "index": 3,
-      "prefabId": "Characterglb",
+      "prefabId": "Char_with_animglb",
       "position": {
-        "x": -0.3052297160955759,
-        "y": 0.5,
-        "z": 3.53103888882737
+        "x": -0.2799558280804865,
+        "y": 0.4,
+        "z": 3.5918666677538442
       },
       "rotation": {
         "x": 0,
@@ -88,18 +48,18 @@ export const levelsConfig: LevelsConfig = {
         "z": 0
       },
       "scale": {
-        "x": 0.5736947377111108,
-        "y": 0.5736947377111108,
-        "z": 0.5736947377111108
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
-      "name": "Characterglb_fdouml",
+      "name": "Char_with_animglb_gyffy4",
       "userData": {
-        "name": "Character.glb",
-        "prefabId": "Characterglb"
+        "name": "Char_with_anim.glb",
+        "prefabId": "Char_with_animglb"
       }
     }
-  ]
-}    
+      ],
+    },
   ],
 };
 
