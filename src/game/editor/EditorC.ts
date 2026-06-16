@@ -7,6 +7,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 
 export class EditorC extends BaseC {
   private selection: THREE.Object3D | null = null;
+  private originalMaterials: Map<THREE.Object3D, THREE.Material | THREE.Material[]> = new Map();
   private transformControls: TransformControls | null = null;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -36,15 +37,21 @@ export class EditorC extends BaseC {
 
   selectByName(name: string): THREE.Object3D | null {
     const obj = this.core.scene.findInScene(name);
-    this.selection = obj;
-    this.attachTransform(obj);
-    return obj;
+    const root = this.getSelectableRoot(obj);
+    this.clearHighlight();
+    this.selection = root;
+    if (root) this.highlightObject(root);
+    this.attachTransform(root);
+    return root;
   }
 
   selectObject(object: THREE.Object3D | null): THREE.Object3D | null {
-    this.selection = object;
-    this.attachTransform(object);
-    return object;
+    const root = this.getSelectableRoot(object);
+    this.clearHighlight();
+    this.selection = root;
+    if (root) this.highlightObject(root);
+    this.attachTransform(root);
+    return root;
   }
 
   private isArmatureObject(object: THREE.Object3D, prefabId?: string): boolean {
@@ -97,6 +104,24 @@ export class EditorC extends BaseC {
     else this.transformControls.detach();
   }
 
+  /**
+   * Find the top-level selectable root for a clicked child.
+   * Walks up the hierarchy until direct child of the scene root.
+   */
+  private getSelectableRoot(object: THREE.Object3D | null): THREE.Object3D | null {
+    if (!object) return null;
+    try {
+      const scene = this.core.scene.getScene();
+      let node: THREE.Object3D | null = object;
+      while (node && node.parent && node.parent !== scene) {
+        node = node.parent as THREE.Object3D;
+      }
+      return node;
+    } catch (e) {
+      return object;
+    }
+  }
+
   buildLevelDesignFromScene(levelId = "level_01"): {
     levelId: string;
     objects: LevelObjectPlacement[];
@@ -105,12 +130,13 @@ export class EditorC extends BaseC {
     const objects: LevelObjectPlacement[] = [];
     let idx = 0;
     for (const child of scene.children) {
-      // skip lights and cameras
+      // skip lights, cameras and editor helper objects
       if (
         child.type === "AmbientLight" ||
         child.type === "DirectionalLight" ||
         child.type === "HemisphereLight" ||
-        child.type === "PerspectiveCamera"
+        child.type === "PerspectiveCamera" ||
+        this.isTransformControlObject(child)
       )
         continue;
 
@@ -269,6 +295,17 @@ export class EditorC extends BaseC {
     this.selection.scale.multiplyScalar(factor);
   }
 
+  private isTransformControlObject(object: THREE.Object3D | null): boolean {
+    if (!this.transformControls || !object) return false;
+    const controlObject = this.transformControls as unknown as THREE.Object3D;
+    let node: THREE.Object3D | null = object;
+    while (node) {
+      if (node === controlObject) return true;
+      node = node.parent as THREE.Object3D | null;
+    }
+    return false;
+  }
+
   selectByScreen(clientX: number, clientY: number): THREE.Object3D | null {
     const canvas = this.core.renderer.getCanvas();
     const rect = canvas.getBoundingClientRect();
@@ -285,16 +322,73 @@ export class EditorC extends BaseC {
         obj.type === "AmbientLight" ||
         obj.type === "DirectionalLight" ||
         obj.type === "HemisphereLight" ||
-        obj.type === "PerspectiveCamera"
+        obj.type === "PerspectiveCamera" ||
+        this.isTransformControlObject(obj)
       )
         continue;
-      this.selection = obj;
-      this.attachTransform(obj);
-      return obj;
+      const root = this.getSelectableRoot(obj);
+      this.clearHighlight();
+      this.selection = root;
+      if (root) this.highlightObject(root);
+      this.attachTransform(root);
+      return root;
     }
     this.selection = null;
     this.attachTransform(null);
     return null;
+  }
+
+  private clearHighlight(): void {
+    try {
+      // restore materials for previously highlighted meshes
+      for (const [mesh, original] of this.originalMaterials.entries()) {
+        if (!mesh) continue;
+        if ((mesh as any).isMesh) {
+          (mesh as THREE.Mesh).material = original as any;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    this.originalMaterials.clear();
+  }
+
+  private highlightObject(object: THREE.Object3D, color = 0xffcc00): void {
+    try {
+      object.traverse((child: THREE.Object3D) => {
+        if ((child as any).isMesh) {
+          const mesh = child as THREE.Mesh;
+          const curMat = mesh.material;
+          // store original material reference so we can restore it
+          this.originalMaterials.set(mesh, curMat as any);
+
+          // create cloned material(s) and tint
+          if (Array.isArray(curMat)) {
+            const cloned = curMat.map((m) => (m as THREE.Material).clone());
+            cloned.forEach((m) => {
+              try {
+                (m as any).color && (m as any).color.set(color);
+                (m as any).emissive && (m as any).emissive.set(color);
+              } catch (e) {
+                /* ignore */
+              }
+            });
+            mesh.material = cloned as any;
+          } else if (curMat) {
+            const cloned = (curMat as THREE.Material).clone();
+            try {
+              (cloned as any).color && (cloned as any).color.set(color);
+              (cloned as any).emissive && (cloned as any).emissive.set(color);
+            } catch (e) {
+              /* ignore */
+            }
+            mesh.material = cloned as any;
+          }
+        }
+      });
+    } catch (e) {
+      // ignore
+    }
   }
 
   setTransformMode(mode: "translate" | "rotate" | "scale"): void {

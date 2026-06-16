@@ -3,6 +3,7 @@ import { meshResources } from "./meshes.resources";
 import { imageResources } from "./images.resources";
 import { textureResources } from "./textures.resources";
 import { vfxResources } from "./vfx.resources";
+import { mapResources } from "./maps.resources";
 import type { ResourceGroup } from "@engine-types/resources";
 
 export const allResourceGroups: ResourceGroup[] = [
@@ -11,6 +12,7 @@ export const allResourceGroups: ResourceGroup[] = [
   imageResources,
   textureResources,
   vfxResources,
+  mapResources,
 ];
 
 export {
@@ -19,4 +21,5 @@ export {
   imageResources,
   textureResources,
   vfxResources,
+  mapResources,
 };

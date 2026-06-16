@@ -30,6 +30,9 @@ export class RendererC extends DisposableC {
         : pixelRatio;
     this.renderer.setPixelRatio(ratio);
     this.renderer.setClearColor(clearColor, 1);
+    (this.renderer as any).outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    (this.renderer as any).toneMappingExposure = 1.2;
     this.renderer.shadowMap.enabled = false;
 
     this.trackDisposable(this.renderer);

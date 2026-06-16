@@ -1,4 +1,4 @@
-export type LoaderKind = "texture" | "image" | "audio" | "mesh" | "vfx";
+export type LoaderKind = "texture" | "image" | "audio" | "mesh" | "vfx" | "env";
 
 export interface ResourceItem {
   id: string;

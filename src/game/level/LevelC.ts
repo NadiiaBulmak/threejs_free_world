@@ -133,14 +133,48 @@ export class LevelC extends BaseC {
       | undefined;
 
     if (source) {
+      // If using a packed scene resource (id 'scene'), do not add the whole
+      // resource into the runtime. Instead, expect the level placement to
+      // specify which child to instantiate via `userData.childName`.
+      const childName = p.userData && (p.userData as any).childName;
+      if (prefabId === "scene") {
+        if (childName) {
+          const child = (source as THREE.Object3D).getObjectByName(childName);
+          if (child) {
+            const inst = this.cloneObject(child);
+            this.normalizeImportedObject(inst, childName);
+            inst.position.set(p.position.x, p.position.y, p.position.z);
+            inst.rotation.set(p.rotation.x, p.rotation.y, p.rotation.z);
+            inst.scale.set(p.scale.x, p.scale.y, p.scale.z);
+            inst.name = p.name ?? `${levelId ?? "level"}_obj_${p.index}`;
+            if (p.userData) inst.userData = { ...inst.userData, ...p.userData };
+            return inst;
+          } else {
+            console.warn(`LevelC: child '${childName}' not found in scene resource`);
+            // fallthrough to continue and try other strategies
+          }
+        }
+
+        // If no childName provided, skip cloning the whole scene to avoid
+        // duplicating all scene children in the runtime. Return an empty
+        // placeholder so caller doesn't accidentally add full scene.
+        console.warn(
+          `LevelC: prefabId 'scene' used without userData.childName — skipping full scene clone to avoid duplication`,
+        );
+        const placeholder = new THREE.Group();
+        placeholder.name = p.name ?? `${levelId ?? "level"}_obj_${p.index}`;
+        placeholder.userData = { ...(placeholder.userData || {}), ...(p.userData || {}) };
+        return placeholder;
+      }
+
+      // Non-scene resource: clone whole resource as before
       const instance = this.cloneObject(source) as THREE.Object3D;
       this.normalizeImportedObject(instance, prefabId);
       instance.position.set(p.position.x, p.position.y, p.position.z);
       instance.rotation.set(p.rotation.x, p.rotation.y, p.rotation.z);
       instance.scale.set(p.scale.x, p.scale.y, p.scale.z);
       instance.name = p.name ?? `${levelId ?? "level"}_obj_${p.index}`;
-      if (p.userData)
-        instance.userData = { ...instance.userData, ...p.userData };
+      if (p.userData) instance.userData = { ...instance.userData, ...p.userData };
       return instance;
     }
 

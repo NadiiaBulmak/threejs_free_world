@@ -34,16 +34,16 @@ export const engineConfig = {
     pixelRatio: "auto" as const,
     antialias: true,
     powerPreference: "high-performance" as const,
-    clearColor: 0x000000,
+    clearColor: 0xffffff,
   },
 
   physics: {
     enabled: false,
-    gravity: { x: 0, y: -9.81, z: 0 },
+    gravity: { x: 0, y: 0, z: 0 },
   },
 
   screen: {
-    backgroundColor: 0x000000,
+    backgroundColor: 0xffffff,
   },
 };
 

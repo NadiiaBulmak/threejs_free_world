@@ -18,8 +18,17 @@ export class SceneC extends DisposableC {
   }
 
   init(): void {
-    // Initialization kept minimal: scene population is handled by
-    // lifecycle callbacks (sample scene, levels, or resource-based loading).
+    const geometry = new THREE.PlaneGeometry(5, 5);
+
+    const material = new THREE.MeshBasicMaterial({ 
+        color: 0xf2dfb1, 
+        side: THREE.DoubleSide
+    });
+
+    const plane = new THREE.Mesh(geometry, material);
+    plane.rotation.x = -Math.PI / 2; // Rotate to make it horizontal
+    plane.scale.set(10, 10, 10); // Scale the plane to make it larger
+    this.scene.add(plane);
   }
 
   /**

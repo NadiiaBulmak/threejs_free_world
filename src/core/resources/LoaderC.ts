@@ -8,6 +8,7 @@ import { AudioResourceLoader } from "./loaders/AudioLoader";
 import { MeshResourceLoader } from "./loaders/MeshLoader";
 import { VfxResourceLoader } from "./loaders/VfxLoader";
 import type { ResourceC } from "./ResourceC";
+import EnvResourceLoader from "./loaders/EnvResourceLoader";
 
 export class LoaderC extends BaseC {
   private loaders: Map<LoaderKind, IResourceLoader>;
@@ -19,6 +20,7 @@ export class LoaderC extends BaseC {
     this.loaders = new Map<LoaderKind, IResourceLoader>([
       ["texture", new TextureResourceLoader()],
       ["image", new ImageResourceLoader()],
+      ["env", new EnvResourceLoader()],
       ["audio", new AudioResourceLoader()],
       ["mesh", new MeshResourceLoader()],
       ["vfx", new VfxResourceLoader()],
