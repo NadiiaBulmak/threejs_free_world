@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
+import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
 import type { ICore } from "@engine-types/core";
 import { engineConfig } from "@config/engine.config";
 import { levelsConfig } from "@config/levels.config";
@@ -12,6 +14,14 @@ export async function beforeResourceLoaded(_core: ICore): Promise<void> {
 }
 
 export async function afterResourceLoaded(core: ICore): Promise<void> {
+  // try to setup environment/sky map early
+  try {
+    await _setupEnvironment(core);
+  } catch (e) {
+    // do not block lifecycle on env setup failure
+    // eslint-disable-next-line no-console
+    console.warn("Environment setup failed:", e);
+  }
   if (engineConfig.sampleScene.enabled) {
     // If sampleScene.mode === 'file' we load the resource but DO NOT add
     // the whole scene into the runtime scene. The Level system will
@@ -57,6 +67,144 @@ export async function afterResourceLoaded(core: ICore): Promise<void> {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("Editor initialization failed:", e);
+  }
+}
+
+async function _setupEnvironment(core: ICore): Promise<void> {
+  const scene = core.scene.getScene();
+  const renderer = (core.renderer as any).getRenderer
+    ? (core.renderer as any).getRenderer()
+    : (core.renderer as any);
+
+  // Prefer a preloaded resource (maps resource group). Use id `env_free_jpg`.
+  try {
+    const loaded = (core.resources as any).get("env_free_jpg");
+    if (loaded) {
+      // If loader stored an HTMLImageElement
+      if (typeof HTMLImageElement !== "undefined" && loaded instanceof HTMLImageElement) {
+        const tex = new THREE.Texture(loaded as HTMLImageElement);
+        tex.needsUpdate = true;
+        try {
+          (tex as any).encoding = (THREE as any).sRGBEncoding;
+        } catch (_) {}
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        pmrem.compileEquirectangularShader();
+        const envMap = pmrem.fromEquirectangular(tex).texture;
+        scene.environment = envMap;
+        scene.background = tex as any;
+        pmrem.dispose();
+        return;
+      }
+
+      // If loader stored a three.js Texture
+      if ((loaded as any) && (loaded as any).isTexture) {
+        const tex = loaded as THREE.Texture;
+        try {
+          (tex as any).encoding = (THREE as any).sRGBEncoding;
+        } catch (_) {}
+        try {
+          const pmrem = new THREE.PMREMGenerator(renderer);
+          pmrem.compileEquirectangularShader();
+          const envMap = pmrem.fromEquirectangular(tex).texture;
+          scene.environment = envMap;
+          scene.background = envMap;
+          pmrem.dispose();
+          console.info("Environment applied from resource (PMREM)");
+          return;
+        } catch (e) {
+          console.warn("PMREM apply failed for env resource, falling back to direct background:", e);
+          try {
+            tex.mapping = (THREE as any).EquirectangularReflectionMapping || (THREE as any).EquirectangularReflectionMapping;
+          } catch (_) {}
+          scene.background = tex as any;
+          // Do not set scene.environment if PMREM failed; leave as null
+          return;
+        }
+      }
+    }
+  } catch (e) {
+    // ignore and fall back to URL-based loading
+  }
+
+  // Prefer HDR (.hdr/.exr) using RGBELoader + PMREM, fallback to JPG texture
+  const tryHdr = async (path: string) => {
+    let tex: any;
+    if (path.toLowerCase().endsWith(".exr")) {
+      const exr = new EXRLoader();
+      tex = await exr.loadAsync(path);
+    } else {
+      const loader = new RGBELoader();
+      tex = await loader.loadAsync(path);
+    }
+    // Protect against extremely large environment images that exceed GPU limits
+    try {
+      const maxSize = (renderer && (renderer.capabilities as any)?.maxTextureSize) ||
+        (renderer && (renderer.getContext && renderer.getContext().getParameter(renderer.getContext().MAX_TEXTURE_SIZE))) ||
+        4096;
+      const img = (tex as any).image || {};
+      const w = img.width || img.WIDTH || (tex as any).width || 0;
+      const h = img.height || img.HEIGHT || (tex as any).height || 0;
+      if (w > maxSize || h > maxSize) {
+        // Dispose and fail so caller can try a smaller candidate
+        try { (tex as any).dispose && (tex as any).dispose(); } catch (_) {}
+        throw new Error(`Environment image too large: ${w}x${h} (max ${maxSize})`);
+      }
+    } catch (e) {
+      // rethrow so outer loop will try next candidate
+      throw e;
+    }
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const envMap = pmrem.fromEquirectangular(tex).texture;
+    scene.environment = envMap;
+    scene.background = envMap;
+    tex.dispose();
+    pmrem.dispose();
+    return true;
+  };
+
+  const tryJpg = (path: string) =>
+    new Promise<void>((resolve) => {
+      const loader = new THREE.TextureLoader();
+      loader.load(path, (tex) => {
+        try {
+          try {
+            (tex as any).encoding = (THREE as any).sRGBEncoding;
+          } catch (_) {
+            /* ignore if typings differ */
+          }
+        } catch (_) {}
+        scene.background = tex as any;
+        resolve();
+      });
+    });
+
+  // List of candidate maps (prefer hdr/exr then jpg)
+  const candidates = [
+    new URL("../../resources/maps/791-hdri-skies-com.hdr", import.meta.url).href,
+    new URL("../../resources/maps/144_hdrmaps_com_free_1K.exr", import.meta.url).href,
+    new URL("../../resources/maps/free_hdri_sky_791_.jpg", import.meta.url).href,
+  ];
+
+  for (const c of candidates) {
+    try {
+      if (c.endsWith(".hdr") || c.endsWith(".exr")) {
+        // try HDR via RGBELoader (RGBELoader also supports .exr in some setups)
+        // If it fails, continue to next candidate
+        // eslint-disable-next-line no-await-in-loop
+        await tryHdr(c);
+        // success
+        return;
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await tryJpg(c);
+        return;
+      }
+    } catch (e) {
+      // try next
+      // eslint-disable-next-line no-console
+      console.warn("Env map candidate failed:", c, e);
+    }
   }
 }
 
